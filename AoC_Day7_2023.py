@@ -18,28 +18,28 @@ def handIsTwoPair(listOfOccurrences):
 
 # Auxiliary function to findHandStrength to account for the effect of the
 # joker on the result. Returns a modified hand-type strength value
-def strengthWithJokerEffect(strength, cardOccurrences, listOfOccurrences, hand):
+def strengthWithJokerEffect(strength, cardOccurrences):
     if cardOccurrences.get('J') == 1: # One joker
         # Mappings: JABCD -> AABCD, JAABC -> AAABC, JAABB -> AAABB,
         # JAAAB -> AAAAB, JAAAA -> AAAAA
         # Cannot have fullhouse or 5ofakind with 1 joker
-        strengthMapping = {0: 1, 1: 3, 2: 4, 3: 5, 5: 6}
+        strengthMapping = {0: 1, 1: 3, 2: 3.5, 3: 4, 4: 5}
         return strengthMapping[strength]
     elif cardOccurrences.get('J') == 2: # Two jokers
         # Mappings: JJABC -> AAABC, JJAAB -> AAAAB, JJAAA -> AAAAA
         # Cannot have highcard, threeofakind (would be fullhouse), 4ofakind, or
         # 5ofakind with 2 jokers
-        strengthMapping = {1: 3, 2: 5, 4: 6}
+        strengthMapping = {1: 3, 2: 4, 3.5: 5}
         return strengthMapping[strength]
     elif cardOccurrences.get('J') == 3: # Three jokers
         # Mappings: ABJJJ -> ABAAA, AAJJJ -> AAAAA
         # Cannot have highcard, pair, 2pair, 4ofakind, or 5ofakind with 3 jokers
-        strengthMapping = {3: 5, 4: 6} 
+        strengthMapping = {3: 4, 3.5: 5} 
         return strengthMapping[strength]
     elif cardOccurrences.get('J') == 4: # Four jokers
-        return 6 # Has to become 5 of a kind
+        return 5 # Has to become 5 of a kind
     else: # 5 jokers
-        return 6 # 5 of a kind
+        return 5 # 5 of a kind
     
 # Function to determine the strength of a hand as a numerical value
 def findHandStrength(hand):
@@ -47,8 +47,8 @@ def findHandStrength(hand):
     # four of a kind, or five of a kind. We'll assign these values 0-6
     # and then give a decimal based on the cards to sort by better cards
     
-    # highcard = 0, pair = 1, twopair = 2, 3ofakind = 3, fullhouse = 4,
-    # 4ofakind = 5, 5ofakind = 6
+    # highcard = 0, pair = 1, twopair = 2, 3ofakind = 3, fullhouse = 3.5,
+    # 4ofakind = 4, 5ofakind = 5
     
     strength = 0 # Initially set strength to 0
 
@@ -68,11 +68,11 @@ def findHandStrength(hand):
 
     # Find the strongest hand
     if 5 in listOfOccurrences: # Five of a kind
-        strength += 6
-    elif 4 in listOfOccurrences: # Four of a kind
         strength += 5
-    elif 3 in listOfOccurrences and 2 in listOfOccurrences: # Full house
+    elif 4 in listOfOccurrences: # Four of a kind
         strength += 4
+    elif 3 in listOfOccurrences and 2 in listOfOccurrences: # Full house
+        strength += 3.5
     elif 3 in listOfOccurrences: # Three of a kind
         strength += 3
     # If its 2 pair, the list of occurrences must be [1,2,2] or [2,1,2] or
@@ -83,28 +83,29 @@ def findHandStrength(hand):
         strength += 1
     # else: High card, strength remains 0
         
-    # Determine the decimal trail at the end to sort cards within hand types
-    # by first higher card
+    # To determine what the first higher card in the hand is, assign each card
+    # a numerical value and add this value divided by 100^(its position in hand)
+    # to its strength. This creates a numerical list of the cards in order
+    # in the decimal trail of the number's strength. This preserves the property
+    # that a higher strength means a better hand
     decimalTrail = 0
-    cardValue = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8,
+    cardValueDict = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8,
                  '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
 
 
-    # The below code is added to solve part 2, to solve part 1 comment out
-    # everything below up until for i in range(1, 5+1)
-    
-    # Replace the value of a joker in decimal trail calculations with a 1
-    cardValue['J'] = 1
-
-    # If there's a joker in this hand, feed it through an auxiliary function
-    # to find the new type strength
+    # For part 2 if there's a joker in this hand, feed it through an auxiliary
+    # function to find the new type strength and modify the cardValueDict to
+    # reflect the joker's new value. To solve part 1 just comment out this if
+    # block
     if cardOccurrences.get('J', 0) >= 1:
-        oldStrength = strength
-        strength = strengthWithJokerEffect(strength, cardOccurrences,
-                                       listOfOccurrences, hand)
-    
+        strength = strengthWithJokerEffect(strength, cardOccurrences)
+        # Replace the value of a joker in decimal trail calculations with a 1
+        cardValueDict['J'] = 1
+        
+
+    # Create the decimal trail for the card's strength as described earlier
     for i in range(1, 5+1):
-        decimalTrail += cardValue[hand[i-1]]/(100**i)
+        decimalTrail += cardValueDict[hand[i-1]]/(100**i)
 
     # Add the decimal trail to the strength
     strength += decimalTrail
